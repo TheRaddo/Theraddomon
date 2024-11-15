@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Player Card Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #4CAF50;
+        }
+        .game-container {
+            text-align: center;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+        }
+        .card {
+            font-size: 2em;
+            margin: 20px;
+        }
+        .scores, .message {
+            font-size: 1.2em;
+            margin: 10px;
+        }
+        .draw-card {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .draw-card:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Card Game</h1>
+        <div class="scores">
+            <p>Player 1 Score: <span id="score1">0</span></p>
+            <p>Player 2 Score: <span id="score2">0</span></p>
+        </div>
+        <div class="card" id="card">Card: -</div>
+        <p class="message" id="message">Waiting for player 1 to start</p>
+        <button class="draw-card" id="drawButton" onclick="drawCard()">Draw Card</button>
+    </div>
+
+    <script>
+        const socket = io();
+        const drawButton = document.getElementById("drawButton");
+        const cardDisplay = document.getElementById("card");
+        const messageDisplay = document.getElementById("message");
+        const score1Display = document.getElementById("score1");
+        const score2Display = document.getElementById("score2");
+
+        socket.on("updateGameState", ({ cardValue, player1Score, player2Score, turn, remainingCards }) => {
+            if (cardValue !== undefined) {
+                cardDisplay.textContent = `Card: ${cardValue}`;
+            }
+            score1Display.textContent = player1Score;
+            score2Display.textContent = player2Score;
+            messageDisplay.textContent = turn === 1 ? "Player 1's turn" : "Player 2's turn";
+            drawButton.disabled = turn !== parseInt(drawButton.dataset.player);
+            if (remainingCards === 0) {
+                drawButton.disabled = true;
+            }
+        });
+
+        socket.on("gameOver", (winnerMessage) => {
+            messageDisplay.textContent = winnerMessage;
+            drawButton.disabled = true;
+        });
+
+        function drawCard() {
+            socket.emit("drawCard");
+        }
+
+        // Prompt the player to choose if they are Player 1 or Player 2
+        const player = prompt("Are you Player 1 or Player 2? Enter 1 or 2");
+        drawButton.dataset.player = player;
+        drawButton.disabled = player != 1;
+    </script>
+</body>
+</html>
